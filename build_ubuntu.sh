@@ -72,4 +72,4 @@ extract_ubuntu_base
 
 config_linux_kernel_x86
 
-build_linux_kernel_x86
+build_linux_kernel_x86g
