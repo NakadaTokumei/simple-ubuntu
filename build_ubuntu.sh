@@ -19,9 +19,6 @@ function extract_linux_kernel () {
     echo "+ Extract Linux Kernel"
     if [ -f linux-6.10.3.tar.xz ] && [ ! -d linux-6.10.3 ]; then
         tar -xvf linux-6.10.3.tar.xz
-    else 
-        echo "Error: File Not Exist"
-        exit -1
     fi
     echo "- Extract Linux Kernel"
 }
@@ -31,11 +28,32 @@ function extract_ubuntu_base () {
     if [ -f ubuntu-base-24.04-base-amd64.tar.gz ] && [ ! -d ubuntu-base ]; then
         mkdir ubuntu-base
         tar -xvzf ubuntu-base-24.04-base-amd64.tar.gz -C ubuntu-base
-    else 
-        echo "Error: File Not Exist"
-        exit -1
     fi
     echo "- Extract Ubuntu Base"
+}
+
+function config_linux_kernel_x86 () {
+    echo "+ Config Linux Kernel for x86_64"
+    if [ -d ./linux-6.10.3 ]; then
+        cd ./linux-6.10.3
+        ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make x86_64_defconfig
+        cd ../
+    else
+        echo "Linux Kernel folder not exist"
+    fi
+    echo "- Config Linux Kernel for x86_64"
+}
+
+function build_linux_kernel_x86 () {
+    echo "+ Build Linux Kernel for x86_64"
+    if [ -d ./linux-6.10.3 ]; then
+        cd ./linux-6.10.3
+        ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make bzImage
+        cd ../
+    else
+        echo "Linux Kernel folder not exist"
+    fi
+    echo "- Build Linux Kernel for x86_64"
 }
 
 echo "#########################"
@@ -51,3 +69,7 @@ get_ubuntu_base
 extract_linux_kernel
 
 extract_ubuntu_base
+
+config_linux_kernel_x86
+
+build_linux_kernel_x86
