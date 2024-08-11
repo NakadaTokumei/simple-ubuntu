@@ -56,6 +56,21 @@ function build_linux_kernel_x86 () {
     echo "- Build Linux Kernel for x86_64"
 }
 
+function set_grub_config() {
+    echo "+ Set Grub configuration"
+    if [ ! -d ubuntu-base/boot/grub ]; then
+        mkdir ubuntu-base/boot/grub
+    fi
+    cp grub/grub.cfg ubuntu-base/boot/grub/
+    echo "- Set Grub configuration"
+}
+
+function set_kernel_image() {
+    echo "+ Set Kernel Image"
+    cp linux-6.10.3/arch/x86/boot/bzImage ubuntu-base/boot
+    echo "- Set Kernel Image"
+}
+
 echo "#########################"
 echo "Simple Ubuntu Builder    "
 echo "by Nakada Tokumei        "
@@ -72,4 +87,8 @@ extract_ubuntu_base
 
 config_linux_kernel_x86
 
-build_linux_kernel_x86g
+build_linux_kernel_x86
+
+set_grub_config
+
+set_kernel_image

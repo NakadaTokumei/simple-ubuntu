@@ -1,3 +1,6 @@
 *.tar*
+*.iso
+
 ubuntu-base/
 linux*/
+initramfs/*
