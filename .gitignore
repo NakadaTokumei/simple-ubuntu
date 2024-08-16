@@ -1,6 +1,8 @@
 *.tar*
 *.iso
 
+.vscode/
 ubuntu-base/
+busybox-*/
 linux*/
 initramfs/*
