@@ -1,8 +1,13 @@
 *.tar*
 *.iso
+*.zip
+*.squashfs
 
 .vscode/
 ubuntu-base/
 busybox-*/
 linux*/
-initramfs/*
+initramfs/
+output/*
+systemd*/
+tmp/

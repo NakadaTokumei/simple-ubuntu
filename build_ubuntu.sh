@@ -1,5 +1,7 @@
 #!/bin/bash
 
+output_iso_file=simple-ubuntu.iso
+
 function get_linux_kernel () {
     echo "+ Get Linux Kernel"
     if [ ! -f linux-6.10.3.tar.xz ]; then
@@ -22,6 +24,14 @@ function get_busybox() {
         wget https://git.busybox.net/busybox/snapshot/busybox-1_36_1.tar.bz2
     fi
     echo "- Get Busybox"
+}
+
+function get_systemd() {
+    echo "+ Get Systemd"
+    if [ ! -f v256.4.zip ]; then
+        wget https://github.com/systemd/systemd/archive/refs/tags/v256.4.zip
+    fi
+    echo "- Get Systemd"
 }
 
 function extract_linux_kernel () {
@@ -49,13 +59,22 @@ function extract_busybox () {
     echo "- Extract Busybox"
 }
 
+function extract_systemd () {
+    echo "+ Extract Systemd"
+    if [ -f v256.4.zip ] && [ ! -d systemd-256.4 ]; then
+        unzip v256.4.zip
+    fi
+    echo "- Extract Systemd"
+}
+
 function config_linux_kernel_x86 () {
     echo "+ Config Linux Kernel for x86_64"
     if [ -d ./linux-6.10.3 ]; then
         if [ ! -f ./linux-6.10.3/.config ]; then
-            cd ./linux-6.10.3
-            ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make x86_64_defconfig
-            cd ../
+            # cd ./linux-6.10.3
+            # ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make x86_64_defconfig
+            # cd ../
+            cp ./kernel_config/.config ./linux-6.10.3/
         fi
     else
         echo "Linux Kernel folder not exist"
@@ -100,6 +119,28 @@ function build_busybox_x86 () {
     echo "- Build Busybox for x86_64"
 }
 
+function build_systemd () {
+    echo "+ Build Systemd"
+    if [ -d ./systemd-256.4 ] && [ -d ./ubuntu-base ]; then
+        cd ./systemd-256.4
+        meson setup build/ && ninja -C build/
+        DESTDIR=../../ubuntu-base meson install -C build/
+        cd ../
+    else
+        echo "Systemd or Ubuntu base Folder not exist"
+        exit -1
+    fi
+    echo "- Build Systemd"
+}
+
+function setup_init_script () {
+    echo "+ Setup Init Script"
+    if [ -d busybox-1_36_1/_install/ ]; then
+        cp ./init_script/init busybox-1_36_1/_install/
+    fi
+    echo "- Setup Init Script"
+}
+
 function setup_initrd () {
     echo "+ Setup Initrd for Linux"
     if [ -d busybox-1_36_1/_install/ ]; then
@@ -112,24 +153,77 @@ function setup_initrd () {
 
 function set_initrd () {
     echo "+ Set Initrd for Linux"
-    cp ./busybox-1_36_1/initrd ubuntu-base/boot
+    if [ ! -d output/boot/ ]; then
+        mkdir -p output/boot
+    fi
+    cp ./busybox-1_36_1/initrd output/boot
     echo "- Set Initrd for Linux"
 }
 
 function set_grub_config() {
     echo "+ Set Grub configuration"
-    if [ ! -d ubuntu-base/boot/grub ]; then
-        mkdir ubuntu-base/boot/grub
+    if [ ! -d output/boot/grub ]; then
+        mkdir -p output/boot/grub
     fi
-    cp grub/grub.cfg ubuntu-base/boot/grub/
+    cp grub/grub.cfg output/boot/grub/
     echo "- Set Grub configuration"
 }
 
 function set_kernel_image() {
     echo "+ Set Kernel Image"
-    cp linux-6.10.3/arch/x86/boot/bzImage ubuntu-base/boot
+    if [ ! -d output/boot/ ]; then
+        mkdir -p output/boot
+    fi
+    cp linux-6.10.3/arch/x86/boot/bzImage output/boot
     echo "- Set Kernel Image"
 }
+
+function setup_tty_ubuntu_base() {
+    echo "+ Setup tty1 for ubuntu base"
+    if [ -d ./ubuntu-base ]; then
+        cd ./ubuntu-base
+        if [ ! -d etc/systemd/system/getty.target.wants ]; then
+            mkdir -p etc/systemd/system/getty.target.wants
+        fi
+        ln -s /usr/lib/systemd/system/getty@.service etc/systemd/system/getty.target.wants/getty@tty1.service
+        cd ../
+    fi
+    echo "- Setup tty1 for ubuntu base"
+}
+
+function make_squashfs() {
+    echo "+ Make squshfs"
+
+    which mksquashfs
+    if [ $? -eq 0 ]; then
+        mksquashfs ubuntu-base simple_ubuntu_live.squashfs
+    else
+        echo "mksqushfs not exist..."
+        exit -1
+    fi
+
+    if [ ! -d output/live ]; then
+        mkdir -p output/live
+    fi
+
+    mv simple_ubuntu_live.squashfs output/live
+
+    echo "- Make squshfs"
+}
+
+function make_rescue_iso() {
+    echo "+ Make rescue iso file"
+    
+    which grub-mkrescue
+    if [ $? -eq 0 ]; then
+        grub-mkrescue -o $output_iso_file output
+    else
+        echo "grub-mkrescue not exist..."
+        exit -1
+    fi
+    echo "- Make resuce iso file"
+}
+
 
 echo "#########################"
 echo "Simple Ubuntu Builder    "
@@ -143,11 +237,15 @@ get_ubuntu_base
 
 get_busybox
 
+get_systemd
+
 extract_linux_kernel
 
 extract_ubuntu_base
 
 extract_busybox
+
+extract_systemd
 
 config_linux_kernel_x86
 
@@ -157,6 +255,10 @@ build_linux_kernel_x86
 
 build_busybox_x86
 
+build_systemd
+
+setup_init_script
+
 setup_initrd
 
 set_initrd
@@ -164,3 +266,9 @@ set_initrd
 set_grub_config
 
 set_kernel_image
+
+setup_tty_ubuntu_base
+
+make_squashfs
+
+make_rescue_iso
