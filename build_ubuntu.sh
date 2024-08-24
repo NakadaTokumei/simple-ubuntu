@@ -98,7 +98,7 @@ function build_linux_kernel_x86 () {
     echo "+ Build Linux Kernel for x86_64"
     if [ -d ./linux-6.10.3 ]; then
         cd ./linux-6.10.3
-        ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make bzImage
+        ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make -j$(nproc) bzImage
         cd ../
     else
         echo "Linux Kernel folder not exist"
