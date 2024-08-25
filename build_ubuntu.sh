@@ -1,11 +1,12 @@
 #!/bin/bash
 
+kernel_version=6.10.3
 output_iso_file=simple-ubuntu.iso
 
 function get_linux_kernel () {
     echo "+ Get Linux Kernel"
-    if [ ! -f linux-6.10.3.tar.xz ]; then
-        wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.10.3.tar.xz
+    if [ ! -f linux-${kernel_version}.tar.xz ]; then
+        wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${kernel_version}.tar.xz
     fi
     echo "- Get Linux Kernel"
 }
@@ -36,8 +37,8 @@ function get_systemd() {
 
 function extract_linux_kernel () {
     echo "+ Extract Linux Kernel"
-    if [ -f linux-6.10.3.tar.xz ] && [ ! -d linux-6.10.3 ]; then
-        tar -xvf linux-6.10.3.tar.xz
+    if [ -f linux-${kernel_version}.tar.xz ] && [ ! -d linux-${kernel_version} ]; then
+        tar -xvf linux-${kernel_version}.tar.xz
     fi
     echo "- Extract Linux Kernel"
 }
@@ -69,12 +70,12 @@ function extract_systemd () {
 
 function config_linux_kernel_x86 () {
     echo "+ Config Linux Kernel for x86_64"
-    if [ -d ./linux-6.10.3 ]; then
-        if [ ! -f ./linux-6.10.3/.config ]; then
-            # cd ./linux-6.10.3
+    if [ -d ./linux-${kernel_version} ]; then
+        if [ ! -f ./linux-${kernel_version}/.config ]; then
+            # cd ./linux-${kernel_version}
             # ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make x86_64_defconfig
             # cd ../
-            cp ./kernel_config/.config ./linux-6.10.3/
+            cp ./kernel_config/.config ./linux-${kernel_version}/
         fi
     else
         echo "Linux Kernel folder not exist"
@@ -96,8 +97,8 @@ function config_busybox_x86 () {
 
 function build_linux_kernel_x86 () {
     echo "+ Build Linux Kernel for x86_64"
-    if [ -d ./linux-6.10.3 ]; then
-        cd ./linux-6.10.3
+    if [ -d ./linux-${kernel_version} ]; then
+        cd ./linux-${kernel_version}
         ARCH=x86 CROSS_COMPILE=x86_64-linux-gnu- make -j$(nproc) bzImage
         cd ../
     else
@@ -174,7 +175,7 @@ function set_kernel_image() {
     if [ ! -d output/boot/ ]; then
         mkdir -p output/boot
     fi
-    cp linux-6.10.3/arch/x86/boot/bzImage output/boot
+    cp linux-${kernel_version}/arch/x86/boot/bzImage output/boot
     echo "- Set Kernel Image"
 }
 
