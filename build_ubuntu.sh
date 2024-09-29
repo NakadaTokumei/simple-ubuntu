@@ -2,6 +2,7 @@
 
 export is_android_kernel='n'
 
+ubuntu_version=24.04.1
 kernel_version=6.10.6
 output_iso_file=simple-ubuntu.iso
 
@@ -43,8 +44,8 @@ function get_android_kernel() {
 
 function get_ubuntu_base () {
     echo "+ Get Ubuntu Base"
-    if [ ! -f ubuntu-base-24.04-base-amd64.tar.gz ]; then
-        wget https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04-base-amd64.tar.gz
+    if [ ! -f ubuntu-base-${ubuntu_version}-base-amd64.tar.gz ]; then
+        wget https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-${ubuntu_version}-base-amd64.tar.gz
     fi
     echo "- Get Ubuntu Base"
 }
@@ -75,9 +76,9 @@ function extract_linux_kernel () {
 
 function extract_ubuntu_base () {
     echo "+ Extract Ubuntu Base"
-    if [ -f ubuntu-base-24.04-base-amd64.tar.gz ] && [ ! -d ubuntu-base ]; then
+    if [ -f ubuntu-base-${ubuntu_version}-base-amd64.tar.gz ] && [ ! -d ubuntu-base ]; then
         mkdir ubuntu-base
-        tar -xvzf ubuntu-base-24.04-base-amd64.tar.gz -C ubuntu-base
+        tar -xvzf ubuntu-base-${ubuntu_version}-base-amd64.tar.gz -C ubuntu-base
     fi
     echo "- Extract Ubuntu Base"
 }
@@ -127,7 +128,7 @@ function config_busybox_x86 () {
 
 function build_android_kernel_x86 () {
     echo "+ Build Android Kerenl for x86_64"
-    tools/bazel run //common:kernel_x86_64_dist -- --destdir=output_android/
+    tools/bazel run --sandbox_debug --verbose_failures //common:kernel_x86_64_dist -- --destdir=output_android/
     echo "- Build Android Kernel for x86_64"
 }
 
