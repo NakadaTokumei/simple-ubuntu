@@ -1,7 +1,26 @@
 #!/bin/bash
 
-kernel_version=6.10.3
+export is_android_kernel='n'
+
+kernel_version=6.10.6
 output_iso_file=simple-ubuntu.iso
+
+repo_url=https://storage.googleapis.com/git-repo-downloads/repo
+android_manifest_url=https://android.googlesource.com/kernel/manifest
+android_manifest_branch=common-android15-6.6
+
+function get_repo() {
+    echo "+ Get Repo"
+    if [ ! -d .bin/ ]; then
+        mkdir .bin
+    fi
+
+    if [ ! -f .bin/repo ]; then
+        curl ${repo_url} > .bin/repo
+        chmod u+x .bin/repo
+    fi
+    echo "- Get Repo"
+}
 
 function get_linux_kernel () {
     echo "+ Get Linux Kernel"
@@ -9,6 +28,17 @@ function get_linux_kernel () {
         wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${kernel_version}.tar.xz
     fi
     echo "- Get Linux Kernel"
+}
+
+function get_android_kernel() {
+    echo "+ Get Android Kernel"
+
+    if [ ! -d .repo/ ]; then
+        ./.bin/repo init -u ${android_manifest_url} -b ${android_manifest_branch}
+        ./.bin/repo sync
+    fi
+
+    echo "- Get Android Kernel"
 }
 
 function get_ubuntu_base () {
@@ -95,6 +125,12 @@ function config_busybox_x86 () {
     echo "- Config Busybox for x86_64"
 }
 
+function build_android_kernel_x86 () {
+    echo "+ Build Android Kerenl for x86_64"
+    tools/bazel run //common:kernel_x86_64_dist -- --destdir=output_android/
+    echo "- Build Android Kernel for x86_64"
+}
+
 function build_linux_kernel_x86 () {
     echo "+ Build Linux Kernel for x86_64"
     if [ -d ./linux-${kernel_version} ]; then
@@ -175,7 +211,13 @@ function set_kernel_image() {
     if [ ! -d output/boot/ ]; then
         mkdir -p output/boot
     fi
-    cp linux-${kernel_version}/arch/x86/boot/bzImage output/boot
+
+    if [ $is_android_kernel == 'y' ]; then
+        cp output_android/bzImage output/boot
+    else
+        cp linux-${kernel_version}/arch/x86/boot/bzImage output/boot
+    fi
+
     echo "- Set Kernel Image"
 }
 
@@ -225,6 +267,64 @@ function make_rescue_iso() {
     echo "- Make resuce iso file"
 }
 
+function do_build() {
+
+    if [ $is_android_kernel == 'y' ]; then
+        get_repo
+        get_android_kernel
+    else
+        get_linux_kernel
+    fi
+
+    get_ubuntu_base
+
+    get_busybox
+
+    get_systemd
+
+    if [ $is_android_kernel != 'y' ]; then
+        extract_linux_kernel
+    fi
+
+    extract_ubuntu_base
+
+    extract_busybox
+
+    extract_systemd
+
+    if [ $is_android_kernel != 'y' ]; then
+        config_linux_kernel_x86
+    fi
+
+    config_busybox_x86
+
+    if [ $is_android_kernel == 'y' ]; then
+        build_android_kernel_x86
+    else
+        build_linux_kernel_x86
+    fi
+
+    build_busybox_x86
+
+    build_systemd
+
+    setup_init_script
+
+    setup_initrd
+
+    set_initrd
+
+    set_grub_config
+
+    set_kernel_image
+
+    setup_tty_ubuntu_base
+
+    make_squashfs
+
+    make_rescue_iso
+}
+
 
 echo "#########################"
 echo "Simple Ubuntu Builder    "
@@ -232,44 +332,17 @@ echo "by Nakada Tokumei        "
 echo "#########################"
 echo ""
 
-get_linux_kernel
+while [ $# -gt 0 ]; do
+   case $1 in
+        --android-kernel|--android)
+            export is_android_kernel='y'
+            echo "Hello"
+            shift
+            ;;
+        *)
+            shift
+            ;;
+   esac 
+done
 
-get_ubuntu_base
-
-get_busybox
-
-get_systemd
-
-extract_linux_kernel
-
-extract_ubuntu_base
-
-extract_busybox
-
-extract_systemd
-
-config_linux_kernel_x86
-
-config_busybox_x86
-
-build_linux_kernel_x86
-
-build_busybox_x86
-
-build_systemd
-
-setup_init_script
-
-setup_initrd
-
-set_initrd
-
-set_grub_config
-
-set_kernel_image
-
-setup_tty_ubuntu_base
-
-make_squashfs
-
-make_rescue_iso
+do_build
